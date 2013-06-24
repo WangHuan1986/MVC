@@ -1,5 +1,7 @@
 var Photo = Backbone.Model.extend({
-	
+	subalbum : function(){
+		return gallery._currentsub;
+	}
 });
 
 var PhotoList = Backbone.Collection.extend({
@@ -13,7 +15,7 @@ var IndexView = Backbone.View.extend({
 	indexTemplate: $("#indexTmpl").template(),
 	
 	render : function(){
-		var el = this.el;
+		var el = this.$el;
 		el.empty();
 		$.tmpl(this.indexTemplate, this.model.toArray()).appendTo(el);
 		return this;
@@ -28,7 +30,7 @@ var AlbumsView  = Backbone.View.extend({
 	albumsTemplate :  $("#subindexTmpl").template(),
 	
 	render : function(){
-		var el = this.el;
+		var el = this.$el;
 		el.empty();
 		$.tmpl(this.albumsTemplate,this.model.toArray()).appendTo(el);
 		return this;
@@ -36,15 +38,32 @@ var AlbumsView  = Backbone.View.extend({
 	
 });
 
-var Gallery = Backbone.Controller.extend({
+var AlbumView  = Backbone.View.extend({
+	
+	el : $('#main'),
+	
+	albumTemplate :  $("#itemTmpl").template(),
+	
+	render : function(){
+		var el = this.$el;
+		el.empty();
+		$.tmpl(this.albumTemplate,this.model).appendTo(el);
+		return this;
+	}
+	
+});
+
+var Gallery = Backbone.Router.extend({
 	
 	_index: null,
     _photos: null,
+	_currentsub : null,
 	_data : null,
 	
 	routes : {
 		'' : 'index',
-		'subalbum/:id' : 'ablums'
+		'subalbum/:id' : 'ablums',
+		'subalbum/:id/:album' : 'album'
 	},
 	
 	initialize : function(options){
@@ -71,15 +90,35 @@ var Gallery = Backbone.Controller.extend({
 	},
 	
 	ablums : function(id){
-	
-		var albumDataIndex = id.replace('c',''),
+		this._currentsub = id;
+		var albumDataIndex = parseInt(id.replace('c','')),
 			albumData = this._data[albumDataIndex].subalbum;
 		var ablumsCollection = new PhotoList(albumData);
 		var albumsView = new AlbumsView({model : ablumsCollection});
 		albumsView.render();
+	},
+	
+	album : function(ablums,album){
+		
+		this._currentsub = ablums;
+		var albumDataIndex = parseInt(ablums.replace('c','')),
+			albumData = this._data[albumDataIndex].subalbum;
+		var ablumsCollection = new PhotoList(albumData);
+		
+		var albumMod = ablumsCollection.at(album)
+		var albumView = new AlbumView({model : albumMod});
+		albumView.render();
 	}
 	
 });
 
 var gallery = new Gallery();
 Backbone.history.start();
+
+$(function(){
+	$('#click').bind('click',function(){
+		gallery.navigate("subalbum/c0",{trigger : true});
+	});
+
+});
+
